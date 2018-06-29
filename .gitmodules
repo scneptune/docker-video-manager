@@ -1,0 +1,3 @@
+[submodule "rails/video-manager"]
+	path = rails/video-manager
+	url = git@github.com:awesomenesstv/video-manager.git
