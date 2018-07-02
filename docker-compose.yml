@@ -18,9 +18,13 @@ services:
       - "3000"
     ports:
       - "3000:3000"
-  postgres_db:
-    container_name: postgresql
+  postgres:
     image: postgres:9.6
+    ports:
+     - "5432"
+    environment:
+     - POSTGRES_USER=postgres
+     - POSTGRES_PASSWORD=superSecret123
   sidekiq:
     container_name: sidekiq
     build:
