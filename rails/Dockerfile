@@ -14,6 +14,8 @@ ENV APP_PATH /user/src/app/
 
 WORKDIR $APP_PATH
 
+VOLUME /var/lib/postgresql/data
+
 COPY Gemfile* $APP_PATH
 
 RUN bundle install --jobs \
