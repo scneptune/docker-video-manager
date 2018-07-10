@@ -1,41 +1,51 @@
 version: "3"
 services:
-  rails_app:
-    container_name: rails_app
-    build:
-      context: ./video-manager
-      dockerfile: ../rails/Dockerfile
-    command: bundle exec rails s -p 3000 -b '0.0.0.0'
-    volumes:
-      - ./rails/video-manager:/user/src/app
-    depends_on:
-      - postgres_db
-      - sidekiq
-    links:
-      - postgres_db
-      - sidekiq
-    expose:
-      - "3000"
-    ports:
-      - "3000:3000"
+  # rails_app:
+  #   container_name: rails_app
+  #   build:
+  #     context: ./video-manager
+  #     dockerfile: ../rails/Dockerfile
+  #   command: bundle exec rails s -p 3000 -b '0.0.0.0'
+  #   volumes:
+  #     - ./video-manager:/user/src/app
+  #   depends_on:
+  #     - postgres_db
+  #     - sidekiq
+  #   links:
+  #     - postgres_db
+  #     - sidekiq
+  #   expose:
+  #     - "3000"
+  #   ports:
+  #     - "3000:3000"
   postgres_db:
     container_name: postgresql
     image: postgres:9.6
+    volumes:
+      - ./postgres:/var/lib/postgresql:rw
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
   sidekiq:
     container_name: sidekiq
+    user: "${UID}:${GID}"
     build:
       context: ./video-manager
       dockerfile: ../sidekiq/Dockerfile
     command: sidekiq -p 8081 -q critical -q default
     volumes:
-      - ./rails/video-manager:/sidekiq
+      - ./video-manager:/user/src/app:rw
     expose:
       - "8081"
     ports:
       - "8081:8081"
     links:
       - redis
+      - postgres_db
+    stdin_open: true
     depends_on:
+      - postgres_db
       - redis
   redis:
     container_name: redis
@@ -44,9 +54,10 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/var/lib/redis/data
+      - ./redis:/var/lib/redis/data:rw
 
 volumes:
-
-  redis_data:
+  redis:
+    driver: local
+  postgres:
     driver: local
