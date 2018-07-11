@@ -3,8 +3,8 @@ services:
   rails_app:
     container_name: rails_app
     build:
-      context: ./rails
-      dockerfile: ./Dockerfile
+      context: .
+      dockerfile: ./rails/Dockerfile
     volumes:
       - ./video-manager:/usr/src/app:rw
     depends_on:
