@@ -1,7 +1,7 @@
 FROM ruby:2.3.7-slim-stretch
 
 ENV APP_PATH /usr/src/app/
-ENV INIT_TASKS /usr/local/src
+ENV INIT_TASKS /usr/local/bin
 
 ENV SERVER_ENVIRONMENT "development"
 ENV NODE_ENV "development"
@@ -18,12 +18,15 @@ RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash
 RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 
-ADD ["./package.json", "./yarn.lock"] $APP_PATH
+ADD ./video-manager/package.json $APP_PATH
+ADD ./video-manager/yarn.lock $APP_PATH
+
+RUN ls -flah $APP_PATH
 
 RUN apt-get update && \
     apt-get install -y yarn nodejs
 
-ADD ./ $APP_PATH
+ADD ./video-manager/Gemfile* $APP_PATH
 
 RUN bundle config build.patron --with-curl-config=`$(which curl-config)` \
     && bundle install --jobs `expr $(cat /proc/cpuinfo | grep -c "cpu cores") - 1` --retry 5
@@ -33,10 +36,14 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* \
 
 EXPOSE 3000
 
-COPY ./docker-entrypoint.d $INIT_TASKS
+COPY ./rails/docker-entrypoint.d $INIT_TASKS
+
+RUN chmod +x $INIT_TASKS/*
+
+ADD ./video-manager $APP_PATH
 
 WORKDIR $APP_PATH
 
-ENTRYPOINT [$INIT_TASKS, 'init.sh']
+ENTRYPOINT $INIT_TASKS/init.sh
 
 CMD rails server -p 3000 -b 0.0.0.0
