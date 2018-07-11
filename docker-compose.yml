@@ -22,7 +22,8 @@ services:
     image: postgres:9.6
     volumes:
       - ./postgres/data:/var/lib/postgresql:rw
-      - ./postgres/docker-entrypoint.d:/docker-entrypoint-initdb.d
+      - ./postgres/docker-entrypoint.d:/usr/local/etc:rw
+      - ./postgres/dumps:/db/dumps:ro
     expose:
       - "5432"
     ports:
