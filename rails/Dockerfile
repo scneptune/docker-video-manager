@@ -1,30 +1,42 @@
-FROM ruby:2.3.7-alpine3.7
-MAINTAINER eng@awesomenesstv.com
+FROM ruby:2.3.7-slim-stretch
 
-RUN apk add --no-cache --update build-base \
-                                linux-headers \
-                                git \
-                                postgresql-dev \
-                                redis \
-                                nodejs \
-                                yarn \
-                                tzdata
+ENV APP_PATH /usr/src/app/
+ENV INIT_TASKS /usr/local/src
 
-ENV APP_PATH /user/src/app/
+ENV SERVER_ENVIRONMENT "development"
+ENV NODE_ENV "development"
+ENV RAILS_ENV "development"
+ENV WEBPACKER_DEV_SERVER_HOST "0.0.0.0"
 
 WORKDIR $APP_PATH
 
-VOLUME /var/lib/postgresql/data
+RUN apt-get update && apt-get install -qq -y build-essential bash sudo \
+   libpq-dev postgresql-client python ruby-dev libc-dev git curl python libcurl4-openssl-dev \
+   libffi-dev libxml2-dev libxslt-dev tzdata wget ca-certificates apt-transport-https
 
-COPY Gemfile* $APP_PATH
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash
+RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 
-RUN bundle install --jobs \
-    `expr $(cat /proc/cpuinfo | grep -c "cpu cores") - 1` --retry 3
+ADD ["./package.json", "./yarn.lock"] $APP_PATH
 
-COPY ./ $APP_PATH
+RUN apt-get update && \
+    apt-get install -y yarn nodejs
+
+ADD ./ $APP_PATH
+
+RUN bundle config build.patron --with-curl-config=`$(which curl-config)` \
+    && bundle install --jobs `expr $(cat /proc/cpuinfo | grep -c "cpu cores") - 1` --retry 5
+
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && apt-get purge -y --auto-remove python git apt-transport-https build-essential
 
 EXPOSE 3000
 
-ENTRYPOINT ["bundle", "exec"]
+COPY ./docker-entrypoint.d $INIT_TASKS
 
-CMD rails server -p 3000
+WORKDIR $APP_PATH
+
+ENTRYPOINT [$INIT_TASKS, 'init.sh']
+
+CMD rails server -p 3000 -b 0.0.0.0
