@@ -1,7 +1,6 @@
 version: "3"
 services:
-  rails_app:
-    container_name: rails_app
+  rails_app: &rails_base
     build:
       context: .
       dockerfile: ./rails/Dockerfile
@@ -13,12 +12,23 @@ services:
     links:
       - redis
       - postgres_db
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - REDIS_SIDEKIQ_URL=redis://redis:6379/0
+      - REDIS_CABLE_URL=redis://redis:6379/1
+      - SECRET_KEY_BASE=f0ee8496d1ddeb69fa0980d0580ff0f174262e61b53e8a318c990a193661f45f84b07a995d33ca8749eb6e0085d375201d319ed0fdaab9aa469e3b9b96f269d6
+      - DB_HOST=postgres_db
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - RAILS_ENV=development
+      - RAILS_MAX_THREADS
     expose:
       - "3000"
     ports:
       - "3000:3000"
+
   postgres_db:
-    container_name: postgresql
     image: postgres:9.6
     volumes:
       - ./postgres/data:/var/lib/postgresql:rw
@@ -28,36 +38,37 @@ services:
       - "5432"
     ports:
       - "5432:5432"
+
   sidekiq:
-    container_name: sidekiq
-    build:
-      context: ./video-manager
-      dockerfile: ../sidekiq/Dockerfile
-    volumes:
-      - ./video-manager:/usr/src/app:rw
-    expose:
-      - "8081"
-    ports:
-      - "8081:8081"
-    links:
-      - rails_app
-      - redis
-      - postgres_db
-    stdin_open: true
+    <<: *rails_base
+    command: bundle exec sidekiq -q critical -q emails -q default
+    # expose:
+    #   - "8081"
+    ports: []
     depends_on:
       - rails_app
-      - postgres_db
-      - redis
+
   redis:
-    container_name: redis
-    image: redis:4-alpine
-    command: redis-server
+    image: redis:4.0-alpine
+    expose:
+      - "6379"
     ports:
       - "6379:6379"
     volumes:
-      - ./redis:/var/lib/redis/data:rw
+      - ./redis/data:/var/lib/redis/data:rw
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.4
+    ports:
+      - "9200:9200"
+    expose:
+      - "9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
 
 volumes:
+  es-data:
+    driver: local
   redis:
     driver: local
   postgres:

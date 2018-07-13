@@ -1,1 +1,12 @@
-./video-manager/tmp
+video-manager/.byebug_history
+video-manager/.env*
+video-manager/.git
+video-manager/.gitignore
+video-manager/Procfile*
+docker-compose.*
+**/Dockerfile
+video-manager/log/*
+video-manager/node_modules/*
+video-manager/public/assets/*
+video-manager/storage/*
+video-manager/tmp/*
