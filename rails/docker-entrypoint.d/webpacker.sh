@@ -1,4 +1,4 @@
 #!/bin/sh
 
-yarn install
-bundle exec ./bin/webpack
+# yarn install 2>/dev/null
+# bundle exec rake assets:precompile
